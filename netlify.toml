@@ -1,0 +1,23 @@
+[images]
+  remote_images = [
+    "https://realtyfocus.info/.*",
+    "https://ext.same-assets.com/1582212274/.*",
+    "https://ext.same-assets.com/1247681252/.*",
+    "https://ext.same-assets.com/80099309/.*"
+  ]
+
+[build]
+  command = "npm run build"
+  # No `publish` key: the site is server-rendered now, so @netlify/plugin-nextjs
+  # wires up the Next runtime instead of serving a static `out/` folder.
+
+[build.environment]
+  NEXT_TELEMETRY_DISABLED = "1"
+  # Next 15 requires Node 18.18+; 20 is the current LTS.
+  NODE_VERSION = "20"
+
+# MONGODB_URI and MONGODB_DB must be set in the Netlify UI
+# (Site configuration -> Environment variables). Do not commit them.
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
