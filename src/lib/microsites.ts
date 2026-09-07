@@ -227,6 +227,43 @@ export interface MicrositePage {
   totalPages: number;
 }
 
+export interface MicrositeDetail {
+  _id: string;
+  micro_id: string;
+  name: string;
+  location?: string;
+  total_area?: string;
+  possession?: string;
+  project_type?: string;
+  price: Array<{
+    type?: string;
+    sqft?: number | null;
+    price?: number | null;
+    basic_cost?: number | null;
+  }>;
+  details: {
+    about?: string;
+    rooms?: string;
+    slider_image?: string;
+    gallery_image?: string;
+    masterplan_image?: string;
+    mlogo?: string;
+    builderName?: string | null;
+    specifications?: Record<string, string>;
+    builder?: Record<string, unknown> | null;
+    status?: Record<string, unknown> | null;
+    type?: Record<string, unknown> | null;
+  } | null;
+  floorplan: Array<{ image: string; name?: string; details?: string }>;
+  amenities: Array<{ name: string; image: string; details?: string }>;
+  builder?: Record<string, unknown> | null;
+  status?: string | null;
+  type?: string | null;
+  specifications?: Record<string, string>;
+  bankapproval?: Record<string, unknown>[];
+  legalapproval?: Record<string, unknown>[];
+}
+
 /**
  * One page of projects plus the total count. Used by /projects so the server
  * only joins and serialises the rows actually being displayed.
@@ -263,7 +300,7 @@ export async function getMicrositeNames(): Promise<
     .find({}, { projection: { name: 1, micro_id: 1, location: 1, city: 1, _id: 0 } })
     .sort({ name: 1 })
     .toArray();
-  return serialize(rows) as Array<{
+  return serialize(rows) as unknown as Array<{
     name: string;
     micro_id: string;
     location: string;
@@ -275,7 +312,7 @@ export async function getMicrositeNames(): Promise<
  * A single project with everything the detail page needs.
  * `slug` is the project name lowercased with spaces replaced by hyphens.
  */
-export async function getMicrositeBySlug(slug: string) {
+export async function getMicrositeBySlug(slug: string): Promise<MicrositeDetail | null> {
   const db = await getDb();
   const name = String(slug || '').replace(/-/g, ' ');
 
@@ -334,7 +371,7 @@ export async function getMicrositeBySlug(slug: string) {
     // gallery_image / slider_image hold image_data ids, not filenames.
     const galleryIds = csvToIds(details.gallery_image);
     const sliderIds = csvToIds(details.slider_image);
-    const imgIds = [...new Set([...galleryIds, ...sliderIds])];
+    const imgIds = Array.from(new Set([...galleryIds, ...sliderIds]));
 
     if (imgIds.length) {
       const images = await db
@@ -349,7 +386,7 @@ export async function getMicrositeBySlug(slug: string) {
     const specRows = await db.collection('specification').find({ micro_id: legacyId }).toArray();
 
     if (specRows.length) {
-      const spIds = [...new Set(specRows.map((s) => String(s.sp_id)).filter(Boolean))];
+      const spIds = Array.from(new Set(specRows.map((s) => String(s.sp_id)).filter(Boolean)));
       const specNames = await db
         .collection('specifications')
         .find({ id: { $in: spIds } })
@@ -365,6 +402,7 @@ export async function getMicrositeBySlug(slug: string) {
   return serialize({
     ...microsite,
     micro_id: legacyId,
+    name: String(microsite.name ?? name),
     details: details
       ? {
           ...details,
@@ -396,5 +434,5 @@ export async function getMicrositeBySlug(slug: string) {
     bankapproval,
     legalapproval,
     specifications,
-  });
+  }) as unknown as MicrositeDetail;
 }

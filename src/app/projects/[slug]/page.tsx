@@ -94,7 +94,7 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
   const name = rawData.name || "Unknown Project";
 
   const project: Project = {
-    id: rawData.micro_id ?? 0,
+    id: Number(rawData.micro_id) || 0,
     slug: name.toLowerCase().replace(/\s+/g, '-'),
     title: name,
     location: rawData.location ?? '',
@@ -102,7 +102,14 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     configuration: details.rooms ?? '',
     area: rawData.total_area ?? '',
     possession: rawData.possession ?? '',
-    price: Array.isArray(rawData.price) ? rawData.price : [],
+    price: Array.isArray(rawData.price)
+      ? rawData.price.map((p) => ({
+          type: p.type ?? '',
+          sqft: String(p.sqft ?? ''),
+          price: p.price ?? 0,
+          basic_cost: p.basic_cost ?? 0,
+        }))
+      : [],
     imageUrls: toUrlArray(details.slider_image, BASE.slider),
     galleryimageUrls: toUrlArray(details.gallery_image, BASE.gallery),
     masterPlan: details.masterplan_image || '',
