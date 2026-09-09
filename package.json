@@ -2,6 +2,12 @@
   "name": "realty-focus-clone",
   "version": "0.1.0",
   "private": true,
+
+  "//allowScripts": "npm 11 warns about dependencies whose install scripts have not been reviewed, and npm 12 will BLOCK them. Both below are transitive deps of packages this project already trusts: sharp comes from next, unrs-resolver from eslint-config-next. Unpinned so a version bump does not reintroduce the warning.",
+  "allowScripts": {
+    "sharp": true,
+    "unrs-resolver": true
+  },
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",

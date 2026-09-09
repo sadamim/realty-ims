@@ -62,7 +62,7 @@ const ProjectCard = ({ project }: { project: ProjectCardData }) => {
           alt={project.title || 'Project'}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover transition-transform duration-[1100ms] ease-luxe group-hover:scale-[1.08]"
+          className="object-cover transition-transform [transition-duration:1100ms] ease-luxe group-hover:scale-[1.08]"
         />
 
         {/* Bottom gradient for the price plate */}
