@@ -12,7 +12,7 @@ const dbName = process.env.MONGODB_DB || 'realtyfocus';
 
 if (!uri) {
   throw new Error(
-    'MONGODB_URI is not set. Add it to .env.local and to your Vercel project Environment Variables (Production + Preview).'
+    'MONGODB_URI is not set. Add it to .env.local (and to the Netlify environment variables for deploys).'
   );
 }
 
@@ -35,7 +35,6 @@ export async function getClient(): Promise<MongoClient> {
     cache.promise = new MongoClient(uri as string, {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 15000,
-      connectTimeoutMS: 15000,
     }).connect();
   }
 

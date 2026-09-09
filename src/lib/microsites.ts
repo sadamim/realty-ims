@@ -80,6 +80,8 @@ export const slugify = (name: string) =>
 export interface MicrositeQuery {
   /** Case-insensitive exact match on microsite.project_type, e.g. "featured". */
   projectType?: string;
+  /** Legacy builder.builder_id — every project by one developer. */
+  builderId?: string;
   /** Drop projects with no non-zero basic_cost. Ignored when paginating. */
   onlyPriced?: boolean;
   /** 1-based. Omit to return every match. */
@@ -102,6 +104,22 @@ export async function getAllMicrositesMain(
   const paginated = typeof options.page === 'number';
 
   const pipeline: Record<string, unknown>[] = [];
+
+  // builder_id lives on microsite_detail, which is not joined until further
+  // down the pipeline. Resolving the ids first keeps the $match in the very
+  // first stage, where it can still use an index, instead of filtering after
+  // every project has already been joined.
+  if (options.builderId) {
+    const detailRows = await db
+      .collection('microsite_detail')
+      .find({ builder_id: String(options.builderId) }, { projection: { micro_id: 1 } })
+      .toArray();
+
+    const microIds = detailRows.map((row) => String(row.micro_id ?? '')).filter(Boolean);
+    if (microIds.length === 0) return [];
+
+    pipeline.push({ $match: { $expr: { $in: [{ $toString: '$micro_id' }, microIds] } } });
+  }
 
   if (options.projectType) {
     pipeline.push({
@@ -227,43 +245,6 @@ export interface MicrositePage {
   totalPages: number;
 }
 
-export interface MicrositeDetail {
-  _id: string;
-  micro_id: string;
-  name: string;
-  location?: string;
-  total_area?: string;
-  possession?: string;
-  project_type?: string;
-  price: Array<{
-    type?: string;
-    sqft?: number | null;
-    price?: number | null;
-    basic_cost?: number | null;
-  }>;
-  details: {
-    about?: string;
-    rooms?: string;
-    slider_image?: string;
-    gallery_image?: string;
-    masterplan_image?: string;
-    mlogo?: string;
-    builderName?: string | null;
-    specifications?: Record<string, string>;
-    builder?: Record<string, unknown> | null;
-    status?: Record<string, unknown> | null;
-    type?: Record<string, unknown> | null;
-  } | null;
-  floorplan: Array<{ image: string; name?: string; details?: string }>;
-  amenities: Array<{ name: string; image: string; details?: string }>;
-  builder?: Record<string, unknown> | null;
-  status?: string | null;
-  type?: string | null;
-  specifications?: Record<string, string>;
-  bankapproval?: Record<string, unknown>[];
-  legalapproval?: Record<string, unknown>[];
-}
-
 /**
  * One page of projects plus the total count. Used by /projects so the server
  * only joins and serialises the rows actually being displayed.
@@ -300,6 +281,8 @@ export async function getMicrositeNames(): Promise<
     .find({}, { projection: { name: 1, micro_id: 1, location: 1, city: 1, _id: 0 } })
     .sort({ name: 1 })
     .toArray();
+  // serialize() returns the same documents; the driver types them as
+  // WithId<Document>, so widen before narrowing to the projected shape.
   return serialize(rows) as unknown as Array<{
     name: string;
     micro_id: string;
@@ -312,7 +295,7 @@ export async function getMicrositeNames(): Promise<
  * A single project with everything the detail page needs.
  * `slug` is the project name lowercased with spaces replaced by hyphens.
  */
-export async function getMicrositeBySlug(slug: string): Promise<MicrositeDetail | null> {
+export async function getMicrositeBySlug(slug: string) {
   const db = await getDb();
   const name = String(slug || '').replace(/-/g, ' ');
 
@@ -371,7 +354,7 @@ export async function getMicrositeBySlug(slug: string): Promise<MicrositeDetail 
     // gallery_image / slider_image hold image_data ids, not filenames.
     const galleryIds = csvToIds(details.gallery_image);
     const sliderIds = csvToIds(details.slider_image);
-    const imgIds = Array.from(new Set([...galleryIds, ...sliderIds]));
+    const imgIds = [...new Set([...galleryIds, ...sliderIds])];
 
     if (imgIds.length) {
       const images = await db
@@ -386,7 +369,7 @@ export async function getMicrositeBySlug(slug: string): Promise<MicrositeDetail 
     const specRows = await db.collection('specification').find({ micro_id: legacyId }).toArray();
 
     if (specRows.length) {
-      const spIds = Array.from(new Set(specRows.map((s) => String(s.sp_id)).filter(Boolean)));
+      const spIds = [...new Set(specRows.map((s) => String(s.sp_id)).filter(Boolean))];
       const specNames = await db
         .collection('specifications')
         .find({ id: { $in: spIds } })
@@ -402,7 +385,6 @@ export async function getMicrositeBySlug(slug: string): Promise<MicrositeDetail 
   return serialize({
     ...microsite,
     micro_id: legacyId,
-    name: String(microsite.name ?? name),
     details: details
       ? {
           ...details,
@@ -434,5 +416,5 @@ export async function getMicrositeBySlug(slug: string): Promise<MicrositeDetail 
     bankapproval,
     legalapproval,
     specifications,
-  }) as unknown as MicrositeDetail;
+  });
 }

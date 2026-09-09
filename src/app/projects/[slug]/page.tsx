@@ -3,6 +3,7 @@ import React from 'react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import RootLayout from '@/components/layout/RootLayout';
+import { resolveImageList, resolveImageSrc } from '@/lib/image-src';
 import ProjectSlider from '@/components/ProjectSlider';
 import { Button } from '@/components/ui/button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -50,51 +51,30 @@ interface ProjectDetailPageProps {
 }
 
 // Helper to convert CSV to image URL array
-const toUrlArray = (csv, base) => {
-  if (!csv) return [];
-  return csv
-    .split(',')
-    .map(idOrUrl => {
-      const trimmed = idOrUrl.trim();
-
-      if (trimmed.startsWith("http")) {
-        return trimmed;
-      }
-
-      const hasValidExtension = /\.(jpg|jpeg|png|webp)$/i.test(trimmed);
-      return `${base}${trimmed}${hasValidExtension ? '' : '.jpg'}`;
-    })
-    .filter(url => url);
-};
 
 // Main Page Component
 export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { slug } = await params;
 
   // Read straight from MongoDB — no HTTP round trip on the server.
-  const rawData = await getMicrositeBySlug(slug);
+  // Legacy documents: the columns vary per row, so this is read dynamically
+  // rather than against a fixed interface.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawData: any = await getMicrositeBySlug(slug);
 
   if (!rawData) {
     notFound();
   }
 
-  // Base URLs
-  const BASE = {
-    slider: "https://realtyfocus.info/images/slider/",
-    gallery: "https://realtyfocus.info/images/gallery/",
-    floorPlan: "https://realtyfocus.info/images/floor_plan/",
-    masterPlan: "https://realtyfocus.info/images/master_plan/",
-    amenities: "https://realtyfocus.info/images/amenities/",
-    builder: "https://realtyfocus.info/images/builderimage/",
-  };
-
-  const details = rawData.details || {};
-  const floorplan = rawData.floorplan || [];
-  const amenities = rawData.amenities || [];
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const details: any = rawData.details || {};
+  const floorplan: any[] = rawData.floorplan || [];
+  const amenities: any[] = rawData.amenities || [];
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   const name = rawData.name || "Unknown Project";
 
   const project: Project = {
-    id: Number(rawData.micro_id) || 0,
+    id: rawData.micro_id ?? 0,
     slug: name.toLowerCase().replace(/\s+/g, '-'),
     title: name,
     location: rawData.location ?? '',
@@ -102,24 +82,24 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     configuration: details.rooms ?? '',
     area: rawData.total_area ?? '',
     possession: rawData.possession ?? '',
-    price: Array.isArray(rawData.price)
-      ? rawData.price.map((p) => ({
-          type: p.type ?? '',
-          sqft: String(p.sqft ?? ''),
-          price: p.price ?? 0,
-          basic_cost: p.basic_cost ?? 0,
-        }))
-      : [],
-    imageUrls: toUrlArray(details.slider_image, BASE.slider),
-    galleryimageUrls: toUrlArray(details.gallery_image, BASE.gallery),
+    price: Array.isArray(rawData.price) ? rawData.price : [],
+    // Every image field goes through the shared resolver, so an image uploaded
+    // in the admin panel ("/api/media/<id>") renders exactly like an imported
+    // filename does.
+    imageUrls: resolveImageList(details.slider_image, 'slider'),
+    galleryimageUrls: resolveImageList(details.gallery_image, 'gallery'),
     masterPlan: details.masterplan_image || '',
     floorPlanimageUrls: Array.isArray(floorplan)
-      ? floorplan.map(fp => BASE.floorPlan + fp.image)
+      ? floorplan
+          .map(fp => resolveImageSrc(fp.image, 'floor_plan'))
+          .filter((url): url is string => Boolean(url))
       : [],
     amenitiesimageUrls: Array.isArray(amenities)
-      ? amenities.map(am => BASE.amenities + am.image)
+      ? amenities
+          .map(am => resolveImageSrc(am.image, 'amenities'))
+          .filter((url): url is string => Boolean(url))
       : [],
-    builderLogo: details.mlogo ? BASE.builder + details.mlogo : '',
+    builderLogo: resolveImageSrc(details.mlogo, 'builderimage') ?? '',
     builderName: details.builderName ?? "House of Hiranandani",
     category: rawData.project_type ?? '',
     amenities: Array.isArray(amenities) ? amenities : [],
@@ -206,25 +186,30 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
               </div>
 
               {/* Amenities */}
-              {project.amenitiesimageUrls.length > 0 && (
+              {amenities.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-6 gap-4 my-6">
-                  {amenities.map((am, idx) => (
-                    <div key={idx} className="text-center">
-                      <Image
-                        src={
-                          am.image.includes('https://storage.googleapis.com/')
-                            ? am.image
-                            : `https://realtyfocus.info/images/amenities/${am.image}`
-                        }
-                        alt={am.name}
-                        width={100}
-                        height={100}
-                        className="rounded mx-auto object-contain"
-                      />
-                      <p className="text-sm mt-2">{am.name}</p>
-                      <p className="text-sm mt-2">{am.details}</p>
-                    </div>
-                  ))}
+                  {amenities.map((am, idx) => {
+                    // An amenity added in the admin panel may not have an icon
+                    // yet, and next/image throws on an empty src.
+                    const icon = resolveImageSrc(am.image, 'amenities');
+                    return (
+                      <div key={idx} className="text-center">
+                        {icon ? (
+                          <Image
+                            src={icon}
+                            alt={am.name}
+                            width={100}
+                            height={100}
+                            className="rounded mx-auto object-contain"
+                          />
+                        ) : (
+                          <div className="mx-auto h-[100px] w-[100px] rounded bg-gray-100" />
+                        )}
+                        <p className="text-sm mt-2">{am.name}</p>
+                        <p className="text-sm mt-2">{am.details}</p>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

@@ -2,7 +2,7 @@
 
 // Cinematic hero: slow Ken Burns background, layered gradient scrim, a headline
 // that resolves word by word, a floating glass search console and a scroll cue.
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
@@ -15,6 +15,8 @@ import {
 import { Input } from '@/components/ui/input';
 import MagneticButton from '@/components/motion/MagneticButton';
 import { Search, MapPin, Building2, ShieldCheck, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import type { Banner } from '@/lib/content';
 
 const headline = ['Find', 'the', 'address', 'that'];
 const headlineAccent = ['feels', 'like', 'home.'];
@@ -25,8 +27,25 @@ const trustPoints = [
   { icon: Sparkles, label: 'Zero brokerage advisory' },
 ];
 
-const HeroSection = () => {
+/**
+ * `slides` comes from the `banner` collection via the admin panel. With none
+ * configured the hero renders exactly as it always did, from the built-in
+ * image and copy below — the site never depends on the collection existing.
+ */
+const HeroSection = ({ slides = [] }: { slides?: Banner[] }) => {
   const reduced = useReducedMotion();
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  useEffect(() => {
+    if (slides.length < 2 || reduced) return;
+    const timer = setInterval(() => {
+      setActiveSlide((current) => (current + 1) % slides.length);
+    }, 6500);
+    return () => clearInterval(timer);
+  }, [slides.length, reduced]);
+
+  const slide = slides[activeSlide] ?? null;
+  const slideWords = slide?.title ? slide.title.split(/\s+/).filter(Boolean) : null;
 
   const wordAnim = (index: number) => ({
     initial: reduced ? false : { opacity: 0, y: 30, filter: 'blur(10px)' },
@@ -36,17 +55,34 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-[92vh] w-full overflow-hidden bg-realty-navy">
-      {/* Background */}
+      {/* Background — managed slides when they exist, the built-in image otherwise.
+          Plain <img> for slides: an editor can point one at any host, and
+          next/image rejects hostnames missing from next.config. */}
       <div className="absolute inset-0">
         <div className={reduced ? 'h-full w-full' : 'h-full w-full animate-ken-burns'}>
-          <Image
-            src="/images/slider-image.webp"
-            alt="Premium residences in Bangalore"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
+          {slides.length > 0 ? (
+            slides.map((item, index) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={item._id}
+                src={item.image ?? ''}
+                alt={index === 0 ? item.title || 'Premium residences in Bangalore' : ''}
+                fetchPriority={index === 0 ? 'high' : 'auto'}
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-out ${
+                  index === activeSlide ? 'opacity-100' : 'opacity-0'
+                }`}
+              />
+            ))
+          ) : (
+            <Image
+              src="/images/slider-image.webp"
+              alt="Premium residences in Bangalore"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          )}
         </div>
       </div>
 
@@ -73,22 +109,41 @@ const HeroSection = () => {
             </span>
           </motion.div>
 
-          <h1 className="mt-7 font-display text-[2.7rem] font-semibold leading-[1.08] tracking-tight text-white sm:text-6xl lg:text-[4.2rem]">
-            {headline.map((word, index) => (
-              <motion.span key={word} className="mr-[0.28em] inline-block" {...wordAnim(index)}>
-                {word}
-              </motion.span>
-            ))}
-            <br className="hidden sm:block" />
-            {headlineAccent.map((word, index) => (
-              <motion.span
-                key={word}
-                className="mr-[0.28em] inline-block text-gradient-gold"
-                {...wordAnim(headline.length + index)}
-              >
-                {word}
-              </motion.span>
-            ))}
+          <h1
+            key={slide?._id ?? 'default'}
+            className="mt-7 font-display text-[2.7rem] font-semibold leading-[1.08] tracking-tight text-white sm:text-6xl lg:text-[4.2rem]"
+          >
+            {slideWords ? (
+              slideWords.map((word, index) => (
+                <motion.span
+                  key={`${word}-${index}`}
+                  className={`mr-[0.28em] inline-block ${
+                    index >= slideWords.length - 2 ? 'text-gradient-gold' : ''
+                  }`}
+                  {...wordAnim(index)}
+                >
+                  {word}
+                </motion.span>
+              ))
+            ) : (
+              <>
+                {headline.map((word, index) => (
+                  <motion.span key={word} className="mr-[0.28em] inline-block" {...wordAnim(index)}>
+                    {word}
+                  </motion.span>
+                ))}
+                <br className="hidden sm:block" />
+                {headlineAccent.map((word, index) => (
+                  <motion.span
+                    key={word}
+                    className="mr-[0.28em] inline-block text-gradient-gold"
+                    {...wordAnim(headline.length + index)}
+                  >
+                    {word}
+                  </motion.span>
+                ))}
+              </>
+            )}
           </h1>
 
           <motion.p
@@ -97,10 +152,25 @@ const HeroSection = () => {
             transition={{ duration: 0.8, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:text-[17px]"
           >
-            Hand-picked apartments, villas and plots from Bangalore&apos;s most trusted
-            builders — with honest pricing, verified approvals and advisors who know
-            every micro-market.
+            {slide?.subtitle ||
+              'Hand-picked apartments, villas and plots from Bangalore\u2019s most trusted builders — with honest pricing, verified approvals and advisors who know every micro-market.'}
           </motion.p>
+
+          {slide?.ctaLabel && slide.ctaHref && (
+            <motion.div
+              initial={reduced ? false : { opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.9, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-7"
+            >
+              <Link
+                href={slide.ctaHref}
+                className="btn-primary sheen inline-flex h-12 items-center rounded-xl px-8 text-[13px] uppercase tracking-[0.14em]"
+              >
+                {slide.ctaLabel}
+              </Link>
+            </motion.div>
+          )}
         </div>
 
         {/* Search console */}
@@ -194,6 +264,24 @@ const HeroSection = () => {
           ))}
         </motion.div>
       </div>
+
+      {/* Slide dots */}
+      {slides.length > 1 && (
+        <div className="absolute bottom-7 left-1/2 z-20 flex -translate-x-1/2 gap-2 md:left-auto md:right-8 md:translate-x-0">
+          {slides.map((item, index) => (
+            <button
+              key={item._id}
+              type="button"
+              aria-label={`Show slide ${index + 1}`}
+              aria-current={index === activeSlide}
+              onClick={() => setActiveSlide(index)}
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                index === activeSlide ? 'w-7 bg-realty-goldLight' : 'w-1.5 bg-white/40 hover:bg-white/70'
+              }`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Scroll cue */}
       <div className="absolute bottom-7 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-2 md:flex">

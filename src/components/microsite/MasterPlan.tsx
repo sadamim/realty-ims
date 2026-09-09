@@ -1,13 +1,13 @@
 // components/microsite/MasterPlan.tsx
 "use client";
 import Image from "next/image";
+import { resolveImageSrc } from "@/lib/image-src";
 
 export default function MasterPlanImage({ imageUrl }) {
     if (!imageUrl) return null;
 
-    const src = imageUrl.startsWith("http")
-        ? imageUrl
-        : `https://realtyfocus.info/images/master_plan/${imageUrl}`;
+    const src = resolveImageSrc(imageUrl, "master_plan");
+    if (!src) return null;
 
     return (
         <div className="bg-white p-6 rounded shadow my-6" id="master-plan">

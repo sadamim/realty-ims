@@ -6,9 +6,8 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
+import { resolveImageSrc } from '@/lib/image-src';
 import { Building2, MapPin, BedDouble, Ruler, CalendarClock, ArrowRight } from 'lucide-react';
-
-const IMAGE_BASE_URL = 'https://realtyfocus.info/images/';
 
 const titleCase = (value?: string | null) =>
   (value || '')
@@ -37,9 +36,12 @@ export interface ProjectCardData {
 const ProjectCard = ({ project }: { project: ProjectCardData }) => {
   const reduced = useReducedMotion();
 
-  const imageSrc = project.imageUrl?.startsWith('https://storage.googleapis.com/')
-    ? project.imageUrl
-    : IMAGE_BASE_URL + 'fimage/' + project.imageUrl;
+  // Handles all three shapes a featured image can take: an uploaded
+  // "/api/media/<id>" path, an absolute URL, or a bare legacy filename. The old
+  // version prefixed the CDN unconditionally, which turned an uploaded image
+  // into a 404.
+  const imageSrc =
+    resolveImageSrc(project.imageUrl, 'fimage') ?? '/images/slider-image.webp';
 
   const specs = [
     { icon: BedDouble, label: 'Configuration', value: project.configuration },

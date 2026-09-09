@@ -7,16 +7,15 @@ npm install
 npm run dev
 ```
 
-A `.env` file is included in the project root. Open it and replace the
-placeholder with your real connection string:
+You also need a `.env.local` in the project root (it is gitignored and was not
+present in the folder):
 
 ```
 MONGODB_URI=<your connection string>
 MONGODB_DB=realtyfocus
 ```
 
-Until you do, `src/lib/mongodb.ts` cannot connect and the homepage will not render.
-Next.js reads `.env` automatically; a `.env.local` would override it if you add one.
+Without it `src/lib/mongodb.ts` throws on import and the homepage will not render.
 On Netlify these two are set under Site configuration → Environment variables.
 
 ## What changed

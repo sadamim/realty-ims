@@ -1,8 +1,16 @@
 import React from 'react';
 import RootLayout from '@/components/layout/RootLayout';
 import Image from 'next/image';
+import TeamSection from '@/components/about/TeamSection';
+import { getTeamMembers } from '@/lib/content';
 
-export default function AboutPage() {
+// Revalidated like the homepage: a change in the admin panel appears within a
+// minute without a redeploy.
+export const revalidate = 60;
+
+export default async function AboutPage() {
+  const team = await getTeamMembers();
+
   return (
     <RootLayout>
       {/* Header Banner */}
@@ -164,6 +172,9 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      {/* Our team — rendered only when the team collection has someone in it. */}
+      <TeamSection members={team} />
 
       {/* Our Values Section */}
       <section className="py-16 container">

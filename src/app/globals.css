@@ -357,3 +357,41 @@ html {
     scroll-behavior: auto !important;
   }
 }
+
+/* Blog article body.
+   Styles the HTML produced by src/lib/richtext.ts (and legacy imported HTML)
+   without pulling in a typography plugin. */
+.prose-realty h2 {
+  @apply mb-3 mt-9 text-2xl font-bold text-realty-navy;
+}
+.prose-realty h3 {
+  @apply mb-2 mt-7 text-xl font-semibold text-realty-navy;
+}
+.prose-realty p {
+  @apply mb-5;
+}
+.prose-realty ul {
+  @apply mb-5 list-disc space-y-2 pl-6;
+}
+.prose-realty ol {
+  @apply mb-5 list-decimal space-y-2 pl-6;
+}
+.prose-realty a {
+  @apply text-realty-red underline underline-offset-2;
+}
+.prose-realty strong {
+  @apply font-semibold text-realty-navy;
+}
+.prose-realty blockquote {
+  @apply my-6 border-l-4 border-realty-red/60 pl-4 italic text-gray-600;
+}
+.prose-realty img {
+  @apply my-6 w-full rounded-lg;
+}
+.prose-realty table {
+  @apply my-6 w-full border-collapse text-sm;
+}
+.prose-realty th,
+.prose-realty td {
+  @apply border border-gray-200 px-3 py-2 text-left;
+}
