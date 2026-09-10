@@ -12,7 +12,10 @@ const dbName = process.env.MONGODB_DB || 'realtyfocus';
 
 if (!uri) {
   throw new Error(
-    'MONGODB_URI is not set. Add it to .env.local (and to the Netlify environment variables for deploys).'
+    'MONGODB_URI is not set. Locally: add it to .env.local. On Vercel: Settings -> ' +
+      'Environment Variables, and make sure it is ticked for the Production environment, ' +
+      'not only Preview. The homepage, /about and /builders are prerendered at build time, ' +
+      'so a missing value fails the build, not just a request.'
   );
 }
 

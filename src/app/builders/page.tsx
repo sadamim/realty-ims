@@ -15,7 +15,7 @@ import { getSiteBuilders, type SiteBuilder } from '@/lib/content';
 export const revalidate = 60;
 
 export const metadata = {
-  title: 'Top Builders in Bangalore | Realty Focus',
+  title: 'Top Builders in Bangalore',
   description:
     'The most prestigious real estate developers in Bangalore, with their completed and ongoing projects.',
 };
@@ -38,6 +38,8 @@ const FALLBACK_BUILDERS: SiteBuilder[] = [
     locations: ['Bangalore', 'Chennai', 'Hyderabad', 'Mysore', 'Kochi'],
     website: '',
     address: '',
+    metaTitle: '',
+    metaDescription: '',
   },
   {
     _id: 'fallback-prestige',
@@ -53,6 +55,8 @@ const FALLBACK_BUILDERS: SiteBuilder[] = [
     locations: ['Bangalore', 'Chennai', 'Hyderabad', 'Goa', 'Mangalore', 'Kochi'],
     website: '',
     address: '',
+    metaTitle: '',
+    metaDescription: '',
   },
   {
     _id: 'fallback-sobha',
@@ -68,6 +72,8 @@ const FALLBACK_BUILDERS: SiteBuilder[] = [
     locations: ['Bangalore', 'Gurgaon', 'Chennai', 'Pune', 'Coimbatore'],
     website: '',
     address: '',
+    metaTitle: '',
+    metaDescription: '',
   },
 ];
 

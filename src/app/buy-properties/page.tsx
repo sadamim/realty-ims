@@ -2,6 +2,17 @@
 
 import RootLayout from '@/components/layout/RootLayout';
 import MicrositeDropdowns from '@/components/MicrositeDropdowns';
+import { buildMetadata } from '@/lib/seo';
+
+
+// Page-level SEO. Without this the page inherits only the site-wide title
+// and description from the root layout, which every other page also has.
+export const metadata = buildMetadata({
+  title: 'Buy Property in Bangalore',
+  description:
+    'Apartments, villas and plots for sale across Bangalore, checked for RERA registration and approval status before they reach this page.',
+  path: '/buy-properties',
+});
 
 export default function BuyProperties() {
     return (

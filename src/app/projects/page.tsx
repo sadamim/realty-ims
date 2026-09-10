@@ -6,7 +6,7 @@ import { getMicrositesPage } from '@/lib/microsites';
 export const revalidate = 60;
 
 export const metadata = {
-  title: 'Projects | Residential Projects in Bangalore for Sale',
+  title: 'Residential Projects in Bangalore for Sale',
 };
 
 export default async function ProjectsPage({

@@ -1,3 +1,4 @@
+import { buildMetadata, seoText } from '@/lib/seo';
 // Individual blog post. This route did not exist before — the listing linked
 // to it and every "Read more" landed on a 404.
 import React from 'react';
@@ -18,18 +19,17 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await getBlogBySlug(slug);
-  if (!post) return { title: 'Article not found | RealtyFocus' };
+  if (!post) return buildMetadata({ title: 'Article not found', path: `/blogs/${slug}`, noIndex: true });
 
-  return {
-    title: `${post.title} | RealtyFocus`,
-    description: post.excerpt,
-    openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      type: 'article',
-      images: post.image ? [post.image] : undefined,
-    },
-  };
+  // An SEO title written in the admin panel wins; otherwise the post's own
+  // title and excerpt describe the page.
+  return buildMetadata({
+    title: seoText(post.metaTitle, post.title),
+    description: seoText(post.metaDescription, post.excerpt),
+    path: `/blogs/${post.slug}`,
+    image: post.image,
+    type: 'article',
+  });
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {

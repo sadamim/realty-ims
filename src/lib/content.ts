@@ -23,13 +23,23 @@ export interface BlogPost {
   readTime: string;
   publishedAt: string | null;
   dateLabel: string;
+  /** SEO overrides written in the admin panel. Empty means "derive it". */
+  metaTitle: string;
+  metaDescription: string;
 }
 
 export interface Banner {
   _id: string;
   title: string;
   subtitle: string;
+  /** Desktop artwork. Always set — a banner without one is filtered out. */
   image: string | null;
+  /**
+   * Narrower crops, already falling back to the desktop image when the editor
+   * left them empty, so the hero can use them unconditionally.
+   */
+  imageTablet: string | null;
+  imageMobile: string | null;
   ctaLabel: string;
   ctaHref: string;
 }
@@ -81,6 +91,8 @@ function toPost(doc: Document): BlogPost {
     dateLabel: valid
       ? valid.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
       : '',
+    metaTitle: String(doc.metaTitle ?? '').trim(),
+    metaDescription: String(doc.metaDescription ?? '').trim(),
   };
 }
 
@@ -212,14 +224,22 @@ export async function getActiveBanners(): Promise<Banner[]> {
       .toArray();
 
     return docs
-      .map((doc) => ({
-        _id: String(doc._id),
-        title: String(doc.title ?? ''),
-        subtitle: String(doc.subtitle ?? ''),
-        image: resolveImageSrc(doc.image, 'banner'),
-        ctaLabel: String(doc.ctaLabel ?? ''),
-        ctaHref: String(doc.ctaHref ?? ''),
-      }))
+      .map((doc) => {
+        const image = resolveImageSrc(doc.image, 'banner');
+        return {
+          _id: String(doc._id),
+          title: String(doc.title ?? ''),
+          subtitle: String(doc.subtitle ?? ''),
+          image,
+          // Falling back here rather than in the component keeps the hero free
+          // of null checks, and means older banners saved before the tablet and
+          // mobile slots existed behave exactly as they always did.
+          imageTablet: resolveImageSrc(doc.imageTablet, 'banner') ?? image,
+          imageMobile: resolveImageSrc(doc.imageMobile, 'banner') ?? image,
+          ctaLabel: String(doc.ctaLabel ?? ''),
+          ctaHref: String(doc.ctaHref ?? ''),
+        };
+      })
       .filter((banner) => Boolean(banner.image));
   } catch (error) {
     console.warn('[content] banners unavailable:', (error as Error).message);
@@ -228,7 +248,7 @@ export async function getActiveBanners(): Promise<Banner[]> {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Testimonials, team and builders                                            */
+/* Testimonials and builders                                                  */
 /*                                                                            */
 /* All three follow the same rule as banners: the database is the source, and  */
 /* an empty or unreachable collection returns [] so the page simply renders    */
@@ -247,17 +267,6 @@ export interface Testimonial {
   project: string;
 }
 
-export interface TeamMember {
-  _id: string;
-  name: string;
-  title: string;
-  bio: string;
-  image: string | null;
-  email: string;
-  phone: string;
-  linkedin: string;
-}
-
 export interface SiteBuilder {
   _id: string;
   builder_id: string;
@@ -271,6 +280,8 @@ export interface SiteBuilder {
   locations: string[];
   website: string;
   address: string;
+  metaTitle: string;
+  metaDescription: string;
 }
 
 const ACTIVE_FILTER = { active: { $ne: false } };
@@ -297,32 +308,6 @@ export async function getTestimonials(limit = 12): Promise<Testimonial[]> {
     }));
   } catch (error) {
     console.warn('[content] testimonials unavailable:', (error as Error).message);
-    return [];
-  }
-}
-
-export async function getTeamMembers(limit = 24): Promise<TeamMember[]> {
-  try {
-    const db = await getDb();
-    const docs = await db
-      .collection('team')
-      .find(ACTIVE_FILTER)
-      .sort({ order: 1, _id: 1 })
-      .limit(limit)
-      .toArray();
-
-    return docs.map((doc) => ({
-      _id: String(doc._id),
-      name: String(doc.name ?? ''),
-      title: String(doc.title ?? ''),
-      bio: String(doc.bio ?? ''),
-      image: resolveImageSrc(doc.image, 'team'),
-      email: String(doc.email ?? ''),
-      phone: String(doc.phone ?? ''),
-      linkedin: String(doc.linkedin ?? ''),
-    }));
-  } catch (error) {
-    console.warn('[content] team unavailable:', (error as Error).message);
     return [];
   }
 }
@@ -358,8 +343,10 @@ export async function getSiteBuilders(): Promise<SiteBuilder[]> {
         slug:
           String(doc.slug ?? '').trim() ||
           name.toLowerCase().replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-'),
-        // Imported logos are bare filenames under /images/logo/.
-        logo: resolveImageSrc(doc.logo ?? doc.image, 'logo'),
+        // Imported logos are bare filenames under /images/builder/ on the legacy
+        // CDN. Not /images/logo/ — that path 404s, which is why every builder card
+        // was rendering a broken image.
+        logo: resolveImageSrc(doc.logo ?? doc.image, 'builder'),
         description: String(doc.description ?? doc.about ?? ''),
         established: String(doc.established ?? ''),
         completedProjects: String(doc.completedProjects ?? ''),
@@ -367,6 +354,8 @@ export async function getSiteBuilders(): Promise<SiteBuilder[]> {
         locations: csvToList(doc.locations),
         website: String(doc.website ?? ''),
         address: String(doc.address ?? ''),
+        metaTitle: String(doc.metaTitle ?? '').trim(),
+        metaDescription: String(doc.metaDescription ?? '').trim(),
       };
     });
   } catch (error) {

@@ -56,14 +56,18 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // RealtyFocus premium palette
+        // RealtyFocus brand palette.
+        // navy and red are sampled from the live site at realtyfocus.info:
+        // the logo wordmark and headings are rgb(9,5,69), the Submit button and
+        // accents are rgb(192,15,27). Every component already references these
+        // tokens, so the whole site re-brands from these six lines.
         realty: {
-          red: "#bf2733",
-          redDark: "#9c1f29",
-          redLight: "#d8404c",
-          navy: "#0d1524",
-          navySoft: "#16203a",
-          darkNavy: "#0a1120",
+          red: "#c00f1b",
+          redDark: "#990c15",
+          redLight: "#d93b46",
+          navy: "#090545",
+          navySoft: "#171150",
+          darkNavy: "#060331",
           slate: "#5c6472",
           lightGray: "#f6f5f3",
           cream: "#faf8f5",
@@ -82,11 +86,11 @@ const config = {
         "3xl": "1.75rem",
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(13,21,36,.04), 0 8px 24px -12px rgba(13,21,36,.12)",
-        card: "0 2px 6px rgba(13,21,36,.05), 0 18px 40px -24px rgba(13,21,36,.28)",
-        lift: "0 8px 20px rgba(13,21,36,.08), 0 32px 64px -28px rgba(13,21,36,.38)",
-        glass: "0 24px 60px -20px rgba(6,12,24,.45)",
-        ring: "0 0 0 1px rgba(13,21,36,.06)",
+        soft: "0 1px 2px rgba(9,5,69,.04), 0 8px 24px -12px rgba(9,5,69,.12)",
+        card: "0 2px 6px rgba(9,5,69,.05), 0 18px 40px -24px rgba(9,5,69,.28)",
+        lift: "0 8px 20px rgba(9,5,69,.08), 0 32px 64px -28px rgba(9,5,69,.38)",
+        glass: "0 24px 60px -20px rgba(6,3,49,.45)",
+        ring: "0 0 0 1px rgba(9,5,69,.06)",
       },
       letterSpacing: {
         luxe: "0.22em",

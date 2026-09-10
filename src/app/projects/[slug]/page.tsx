@@ -7,15 +7,51 @@ import { resolveImageList, resolveImageSrc } from '@/lib/image-src';
 import ProjectSlider from '@/components/ProjectSlider';
 import { Button } from '@/components/ui/button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHouse, faKey, faBed, faHammer, faArrowsAlt } from '@fortawesome/free-solid-svg-icons';
+import { faHouse, faKey, faBed, faHammer, faArrowsAlt, faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 
 // Components
 import Gallery from '@/components/microsite/Gallery';
 import FloorPlan from '@/components/microsite/FloorPlan';
 import MasterPlanImage from '@/components/microsite/MasterPlan';
 import { getMicrositeBySlug } from '@/lib/microsites';
+import { buildMetadata, seoText } from '@/lib/seo';
 
 export const revalidate = 60;
+
+/**
+ * Per-project SEO. This route previously shipped with only the site-wide title,
+ * so every one of the 2,000+ project pages looked identical to a crawler.
+ *
+ * meta_title / meta_description on the project's detail row win when set in the
+ * admin panel; otherwise the name, location and description build a sensible
+ * one automatically.
+ */
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const data = await getMicrositeBySlug(slug);
+
+  if (!data) {
+    return buildMetadata({ title: 'Project not found', path: `/projects/${slug}`, noIndex: true });
+  }
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const details: any = (data as any).details || {};
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+  const name = String((data as { name?: string }).name || 'Project');
+  const where = [details.location, details.city, (data as { location?: string }).location]
+    .filter(Boolean)
+    .join(', ');
+
+  return buildMetadata({
+    title: seoText(details.meta_title, where ? `${name}, ${where}` : name),
+    description: seoText(
+      details.meta_description,
+      details.about || `${name} — pricing, floor plans, amenities and possession details.`,
+    ),
+    path: `/projects/${slug}`,
+    image: resolveImageSrc(details.featured_image, 'fimage'),
+  });
+}
 
 // Types
 interface Project {
@@ -43,6 +79,8 @@ interface Project {
   amenities: Array<{ name: string; image: string }>;
   specifications: { [key: string]: string };
   slug: string;
+  /** Selling points written in the admin panel, one per line. */
+  highlights: string[];
 }
 
 interface ProjectDetailPageProps {
@@ -104,6 +142,13 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     category: rawData.project_type ?? '',
     amenities: Array.isArray(amenities) ? amenities : [],
     specifications: details.specifications ?? {},
+    // Newline-separated in the database; commas are accepted too, because that
+    // is how every other list on these imported documents is written.
+    highlights: String(details.highlights ?? '')
+      .split(/\r?\n|,/)
+      .map((line: string) => line.trim())
+      .filter(Boolean)
+      .slice(0, 12),
   };
 
   return (
@@ -184,6 +229,24 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
                 <h2 className="text-xl font-bold mb-4 text-realty-navy">Description</h2>
                 <p className="text-gray-600 text-justify">{project.description}</p>
               </div>
+
+              {/* Highlights — skipped entirely when none are written. */}
+              {project.highlights.length > 0 && (
+                <div className="bg-white p-6 rounded-md shadow-md mb-6">
+                  <h2 className="text-xl font-bold mb-4 text-realty-navy">Highlights</h2>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                    {project.highlights.map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5">
+                        <FontAwesomeIcon
+                          icon={faCircleCheck}
+                          className="mt-1 h-4 w-4 shrink-0 text-realty-red"
+                        />
+                        <span className="text-gray-700">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Amenities */}
               {amenities.length > 0 && (

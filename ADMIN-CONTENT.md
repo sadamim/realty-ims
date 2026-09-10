@@ -116,3 +116,58 @@ into a 404. They now share the resolver.
 One related fix: the amenities grid on a project page skips the image rather
 than passing an empty `src` to `next/image`, which throws. An amenity created in
 the panel may not have an icon yet.
+
+---
+
+# Third pass — brand colours, responsive banners, SEO
+
+## Brand
+
+`tailwind.config.ts` and the CSS variables in `globals.css` now carry the colours
+sampled from the live site at realtyfocus.info — navy `#090545` (the logo
+wordmark and headings there) and red `#C00F1B` (its Submit button). Every
+component already referenced `realty-navy` / `realty-red` / `--primary` rather
+than hard-coded hexes, so this was a change to the token values and nothing
+else. Shadows were re-tinted to the same navy.
+
+The live site uses square buttons. This one stays rounded, because `--radius`
+also rounds every card — flip that one value if you want the square look.
+
+## Builder logos
+
+Fixed. `builder.logo` is a bare filename and was being resolved against
+`/images/logo/`, which 404s; the real folder is `/images/builder/` (probed
+against the live CDN: `builder` returns a 250×150 image, `logo` returns 404).
+
+## Banners are responsive now
+
+A banner carries three images — desktop (required), tablet and mobile. The hero
+renders a `<picture>`, narrowest `<source>` first, so a phone downloads the tall
+crop instead of the wide desktop artwork. Missing crops fall back to the desktop
+image inside `getActiveBanners`, so banners saved before this change behave
+exactly as they did.
+
+## SEO
+
+`src/lib/seo.ts` builds title, description, canonical and social cards for every
+page. The root layout sets `metadataBase` and a `%s | Realty Focus` template.
+
+Seven routes had no metadata and inherited the site-wide title — the homepage,
+About, Contact, the three property pages, and `/projects/[slug]`. That last one
+matters most: every project page looked identical to a crawler. All seven now
+describe themselves, and an editor can override the text per record from the
+admin panel (`metaTitle`/`metaDescription` on blogs and builders,
+`meta_title`/`meta_description` on a project).
+
+Set `NEXT_PUBLIC_SITE_URL` on Vercel once a real domain is attached — canonicals
+currently point at realtyfocus.info.
+
+## Project highlights
+
+`microsite_detail.highlights`, one per line, renders as a feature grid on the
+project page above the amenities. Empty means the block is skipped.
+
+## Removed
+
+The Team section on the About page is gone, along with `getTeamMembers` and the
+`TeamMember` type. The About page is fully static again.

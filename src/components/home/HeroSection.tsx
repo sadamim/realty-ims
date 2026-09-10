@@ -62,16 +62,22 @@ const HeroSection = ({ slides = [] }: { slides?: Banner[] }) => {
         <div className={reduced ? 'h-full w-full' : 'h-full w-full animate-ken-burns'}>
           {slides.length > 0 ? (
             slides.map((item, index) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={item._id}
-                src={item.image ?? ''}
-                alt={index === 0 ? item.title || 'Premium residences in Bangalore' : ''}
-                fetchPriority={index === 0 ? 'high' : 'auto'}
-                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-out ${
-                  index === activeSlide ? 'opacity-100' : 'opacity-0'
-                }`}
-              />
+              // <picture> so a phone downloads the tall crop and never the
+              // 2000px-wide desktop artwork. The browser picks the first
+              // matching <source>, so narrowest is listed first; both fall back
+              // to the desktop image when no separate crop was uploaded.
+              <picture key={item._id}>
+                <source media="(max-width: 640px)" srcSet={item.imageMobile ?? item.image ?? ''} />
+                <source media="(max-width: 1024px)" srcSet={item.imageTablet ?? item.image ?? ''} />
+                <img
+                  src={item.image ?? ''}
+                  alt={index === 0 ? item.title || 'Premium residences in Bangalore' : ''}
+                  fetchPriority={index === 0 ? 'high' : 'auto'}
+                  className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-out ${
+                    index === activeSlide ? 'opacity-100' : 'opacity-0'
+                  }`}
+                />
+              </picture>
             ))
           ) : (
             <Image

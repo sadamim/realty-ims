@@ -3,6 +3,17 @@ import RootLayout from '@/components/layout/RootLayout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { buildMetadata } from '@/lib/seo';
+
+
+// Page-level SEO. Without this the page inherits only the site-wide title
+// and description from the root layout, which every other page also has.
+export const metadata = buildMetadata({
+  title: 'Contact Us',
+  description:
+    'Talk to a Realty Focus advisor about buying, selling or renting property in Bangalore. Site visits, home-loan help and documentation support.',
+  path: '/contact',
+});
 
 export default function ContactPage() {
   return (

@@ -1,3 +1,4 @@
+import { buildMetadata, seoText } from '@/lib/seo';
 // One builder and everything they are building.
 //
 // This route did not exist before: every "View Projects" link on /builders was
@@ -20,14 +21,18 @@ const FALLBACK_LOGO = '/images/builder-logo.jpeg';
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const builder = await getSiteBuilderBySlug(slug);
-  if (!builder) return { title: 'Builder not found | Realty Focus' };
+  if (!builder) return buildMetadata({ title: 'Builder not found', path: `/builders/${slug}`, noIndex: true });
 
-  return {
-    title: `${builder.name} — Projects in Bangalore | Realty Focus`,
-    description:
-      builder.description.slice(0, 155) ||
-      `Residential projects by ${builder.name}, with pricing, configurations and possession dates.`,
-  };
+  return buildMetadata({
+    title: seoText(builder.metaTitle, `${builder.name} — Projects in Bangalore`),
+    description: seoText(
+      builder.metaDescription,
+      builder.description ||
+        `Residential projects by ${builder.name}, with pricing, configurations and possession dates.`,
+    ),
+    path: `/builders/${builder.slug}`,
+    image: builder.logo,
+  });
 }
 
 export default async function BuilderPage({ params }: { params: Promise<{ slug: string }> }) {

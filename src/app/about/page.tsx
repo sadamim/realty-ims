@@ -1,16 +1,19 @@
 import React from 'react';
 import RootLayout from '@/components/layout/RootLayout';
 import Image from 'next/image';
-import TeamSection from '@/components/about/TeamSection';
-import { getTeamMembers } from '@/lib/content';
+import { buildMetadata } from '@/lib/seo';
 
-// Revalidated like the homepage: a change in the admin panel appears within a
-// minute without a redeploy.
-export const revalidate = 60;
 
-export default async function AboutPage() {
-  const team = await getTeamMembers();
+// Page-level SEO. Without this the page inherits only the site-wide title
+// and description from the root layout, which every other page also has.
+export const metadata = buildMetadata({
+  title: 'About Us',
+  description:
+    'Realty Focus is a Bangalore real estate platform connecting buyers, sellers and developers — with transparency, licensed advisors and over 5,000 homes sold.',
+  path: '/about',
+});
 
+export default function AboutPage() {
   return (
     <RootLayout>
       {/* Header Banner */}
@@ -172,9 +175,6 @@ export default async function AboutPage() {
           </div>
         </div>
       </section>
-
-      {/* Our team — rendered only when the team collection has someone in it. */}
-      <TeamSection members={team} />
 
       {/* Our Values Section */}
       <section className="py-16 container">

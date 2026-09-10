@@ -13,7 +13,7 @@ import { getBlogCategories, getPublishedBlogs } from '@/lib/content';
 export const revalidate = 30;
 
 export const metadata = {
-  title: 'Real Estate Blogs | RealtyFocus',
+  title: 'Real Estate Blogs',
   description: 'Insights, advice and updates from the Bangalore real estate market.',
 };
 
